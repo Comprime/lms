@@ -1,5 +1,5 @@
 # lms
-A super simple RPC library that uses [nng](https://github.com/nanomsg/nng) to deliver messages and [Messagepack](https://github.com/neuecc/MessagePack-CSharp)-[RPC](https://github.com/msgpack-rpc/msgpack-rpc) and to format them.
+A super simple RPC library that uses [nng](https://github.com/nanomsg/nng) to deliver messages and [Messagepack](https://github.com/neuecc/MessagePack-CSharp)-[RPC](https://github.com/msgpack-rpc/msgpack-rpc) to format them.
 
 This project uses https://github.com/jeikabu/nng.NETCore to help with using nng in C#
 MessagePack serialization and deserialization is handled by https://github.com/neuecc/MessagePack-CSharp
