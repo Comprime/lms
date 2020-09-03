@@ -64,27 +64,30 @@ namespace lms.Internal {
             Dispose();
             return default;
         }
-
-        public async Task<TRes> Request<TReq, TRes>(string name, TReq request, CancellationToken cancellationToken = default)
+        public async Task<TRes> Request<TReq, TRes>(string name, TReq request, CancellationToken cancellationToken = default) =>
+            MessagePackSerializer.Deserialize<TRes>(await Request(name, MessagePackSerializer.Serialize(request, msgOptions, cancellationToken)), msgOptions);
+        public async Task<TRes> Request<TRes>(string name, byte[] request, CancellationToken cancellationToken = default) =>
+            MessagePackSerializer.Deserialize<TRes>(await Request(name, request, cancellationToken), msgOptions);
+        public async Task<byte[]> Request<TReq>(string name, TReq request, CancellationToken cancellationToken = default) =>
+            await Request(name, MessagePackSerializer.Serialize(request, msgOptions), cancellationToken);
+        public async Task<byte[]> Request(string name, byte[] request, CancellationToken cancellationToken = default)
         {
             while(!cancellationToken.IsCancellationRequested) {
                 await OpenSocket(cancellationToken);
                 
                 int id = Interlocked.Increment(ref counter);
-                var paramData = request is byte[] b ? b : MessagePackSerializer.Serialize(request, msgOptions);
                 var req = factory.CreateMessage();
                 using (var stream = new NngMessageStream(req)){
                     MessagePackSerializer.Serialize(stream, new Request {
                         MsgId = id,
                         Method = name,
-                        Params = paramData
+                        Params = request
                     }, intMsgOptions);
                 }
 
                 var s = socket;
                 using var ctx = socket.CreateAsyncContext(factory).Unwrap();
                 ctx.SetTimeout(1000);
-                //cancellationToken.Register(ctx.Cancel);
 
                 IMessage res;
                 try {
@@ -100,7 +103,7 @@ namespace lms.Internal {
                     using var stream = new NngMessageStream(res);
                     var resD = MessagePackSerializer.Deserialize<Response>(stream, intMsgOptions);
                     if(resD.MsgId != id) throw new Exception("ID Missmatch");
-                    return MessagePackSerializer.Deserialize<TRes>(resD.Result, msgOptions);
+                    return resD.Result;
                 }
             }
             cancellationToken.ThrowIfCancellationRequested();
