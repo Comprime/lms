@@ -32,11 +32,12 @@ namespace lms.proj
                     await using var server = 
                         Lms.CreateServerBuilder(loggerFactory.CreateLogger<IServer>())
                             .AddFunction<int,int>("Tester", Tester)
+                            .AddFunction<int,int>("ThrowException", ThrowException)
                             .Build(factory, uri);
                     await server.Listen(8, cts.Token);
                 }),
 
-                // Client request loop
+                // Client Tester request loop
                 Task.Run(async()=>{
                     await using var client = Lms.CreateClient(factory, uri, loggerFactory.CreateLogger<IClient>());
                     var random = new Random();
@@ -45,13 +46,30 @@ namespace lms.proj
                         var result = await client.Request<int, int>("Tester", request, cts.Token);
                         logger.LogInformation("Requested {Request} and got {Result}", request, result);
                     }
+                }),
+
+                // Client Tester request loop
+                Task.Run(async()=>{
+                    await using var client = Lms.CreateClient(factory, uri, loggerFactory.CreateLogger<IClient>());
+                    while(!cts.Token.IsCancellationRequested){
+                        try {
+                            var result = await client.Request<int, int>("ThrowException", 20, cts.Token);
+                        }catch(Exception e) {
+                            logger.LogInformation("Called ThrowException and got a {Type} saying {Message}", e.GetType(), e.Message);
+                        }
+                    }
                 })
             );
         }
 
-        static async ValueTask<int> Tester(int test, CancellationToken token = default) {
-            await Task.Delay(200);
+        static async ValueTask<int> Tester(int test, CancellationToken cancellationToken = default) {
+            await Task.Delay(200, cancellationToken);
             return test;
+        }
+
+        static async ValueTask<int> ThrowException(int delay, CancellationToken cancellationToken = default) {
+            await Task.Delay(delay, cancellationToken);
+            throw new TimeoutException("Hello world!");
         }
     }
 }

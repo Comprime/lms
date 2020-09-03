@@ -13,8 +13,9 @@ namespace lms.Internal {
         private readonly string uri;
         private readonly ILogger<IClient> logger;
         private readonly CancellationTokenSource disposeTokenSource;
-        private readonly MessagePackSerializerOptions msgOptions;
-        private readonly MessagePackSerializerOptions intMsgOptions;
+        private static readonly MessagePackSerializerOptions msgOptions = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
+        private static readonly MessagePackSerializerOptions intMsgOptions = MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create( new MessageFormatter() ));
+        private static readonly MessagePackSerializerOptions excMsgOptions = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
         private IReqSocket socket;
         private int counter = 0;
         private SemaphoreSlim socketSemaphore = new SemaphoreSlim(1);
@@ -23,10 +24,6 @@ namespace lms.Internal {
             this.uri = uri;
             this.logger = logger;
             disposeTokenSource = new CancellationTokenSource();
-            msgOptions = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
-            intMsgOptions = MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(
-                new MessageFormatter()
-            ));
         }
 
         private async ValueTask OpenSocket(CancellationToken cancellationToken = default) {
@@ -103,6 +100,8 @@ namespace lms.Internal {
                     using var stream = new NngMessageStream(res);
                     var resD = MessagePackSerializer.Deserialize<Response>(stream, intMsgOptions);
                     if(resD.MsgId != id) throw new Exception("ID Missmatch");
+                    if(resD.Error is object && resD.Error.Length > 0)
+                        throw MessagePackSerializer.Deserialize<Exception>(resD.Error, excMsgOptions);
                     return resD.Result;
                 }
             }

@@ -15,7 +15,10 @@ namespace lms.Internal {
         private readonly IAPIFactory<IMessage> factory;
         private readonly CancellationTokenSource disposeTokenSource;
         
-        private readonly MessagePackSerializerOptions intMsgOptions;
+        private static readonly MessagePackSerializerOptions intMsgOptions = MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(
+                new MessageFormatter()
+            ));
+        private static readonly MessagePackSerializerOptions excMsgOptions = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
         private readonly string uri;
         private readonly ILogger<IServer> logger;
 
@@ -25,9 +28,6 @@ namespace lms.Internal {
             this.uri = uri;
             this.logger = logger;
             disposeTokenSource = new CancellationTokenSource();
-            intMsgOptions = MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(
-                new MessageFormatter()
-            ));
         }
 
         public void Dispose()
@@ -71,7 +71,7 @@ namespace lms.Internal {
                     try {
                         res.Result = await dict[req.Method](req.Params, cancellationToken);
                     } catch(Exception e) {
-                        res.Error = MessagePackSerializer.Serialize(e);
+                        res.Error = MessagePackSerializer.Serialize(e, excMsgOptions);
                     }
                     using(var msg = factory.CreateMessage()) {
                         using var stream = new NngMessageStream(msg);
