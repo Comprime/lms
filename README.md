@@ -1,9 +1,9 @@
 # lms
 A super simple RPC library that uses [nng](https://github.com/nanomsg/nng) to deliver messages and [MessagePack](https://github.com/neuecc/MessagePack-CSharp)-[RPC](https://github.com/msgpack-rpc/msgpack-rpc) to format them.
 
-This project uses https://github.com/jeikabu/nng.NETCore to help with using nng in C#
-MessagePack serialization and deserialization is handled by https://github.com/neuecc/MessagePack-CSharp
-It has support for pluggable logging with Microsoft.Extensions.Logging.Abstractions
+This project uses [nng.NETCore](https://github.com/jeikabu/nng.NETCore) to help with using nng in C#\
+MessagePack serialization and deserialization is handled by [MessagePack for C#](https://github.com/neuecc/MessagePack-CSharp)\
+It has support for pluggable logging with [Microsoft.Extensions.Logging.Abstractions](https://www.nuget.org/packages/Microsoft.Extensions.Logging.Abstractions/)
 
 ## Examples
 Create nng.NETCore context and factory objects
@@ -18,7 +18,7 @@ Server is created with
 using var server = Lms.CreateServerBuilder()
     .AddFunction<int,int>("TimesTwenty", i => i * 20))
     .Build(factory, uri);
-await server.Listen();
+await server.Listen(8); // For 8 workers
 ```
 
 Requests are sent with
