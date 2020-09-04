@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using MessagePack;
 using MessagePack.Resolvers;
 using nng;
+using nng.Native;
 
 namespace lms.Internal {
     internal sealed class Client : IClient
@@ -84,7 +85,7 @@ namespace lms.Internal {
 
                 var s = socket;
                 using var ctx = socket.CreateAsyncContext(factory).Unwrap();
-                ctx.SetTimeout(1000);
+                ctx.SetTimeout(60000);
 
                 IMessage res;
                 try {
@@ -93,6 +94,8 @@ namespace lms.Internal {
                         res = (await ctx.Send(req)).Unwrap();
                     logger.LogInformation("-< {Method}", name);
                 }catch(NngException exception){
+                    if(exception.ErrorCode == Defines.NNG_ETIMEDOUT)
+                        throw;
                     logger.LogWarning(exception, "Failed to send {Method}", name);
                     continue;
                 }

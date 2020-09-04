@@ -2,8 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <Version>0.1.1</Version>
-    <PackageVersion>0.1.1-v2</PackageVersion>
+    <Version>0.1.2</Version>
     <PackageId>compri.me.lms</PackageId>
     <AssemblyName>compri.me.lms</AssemblyName>
     <Authors>Victor Dahmen</Authors>
