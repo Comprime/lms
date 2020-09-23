@@ -16,7 +16,7 @@ namespace lms.Internal {
         private readonly CancellationTokenSource disposeTokenSource;
         private static readonly MessagePackSerializerOptions msgOptions = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
         private static readonly MessagePackSerializerOptions intMsgOptions = MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create( new MessageFormatter() ));
-        private static readonly MessagePackSerializerOptions excMsgOptions = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
+        private static readonly MessagePackSerializerOptions excMsgOptions = MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create( new ExceptionFormatter() ));
         private IReqSocket socket;
         private int counter = 0;
         private SemaphoreSlim socketSemaphore = new SemaphoreSlim(1);

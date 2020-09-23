@@ -18,7 +18,9 @@ namespace lms.Internal {
         private static readonly MessagePackSerializerOptions intMsgOptions = MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(
                 new MessageFormatter()
             ));
-        private static readonly MessagePackSerializerOptions excMsgOptions = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
+        private static readonly MessagePackSerializerOptions excMsgOptions = MessagePackSerializerOptions.Standard.WithResolver(CompositeResolver.Create(
+                new ExceptionFormatter()
+            ));
         private readonly string uri;
         private readonly ILogger<IServer> logger;
 

@@ -55,7 +55,7 @@ namespace lms.proj
                         try {
                             var result = await client.Request<int, int>("ThrowException", 20, cts.Token);
                         }catch(Exception e) {
-                            logger.LogInformation("Called ThrowException and got a {Type} saying {Message}", e.GetType(), e.Message);
+                            logger.LogInformation("Called ThrowException and got a {Type} saying {Message}\n{StackTrace}", e.GetType(), e.Message, e.StackTrace);
                         }
                     }
                 })
@@ -69,7 +69,7 @@ namespace lms.proj
 
         static async ValueTask<int> ThrowException(int delay, CancellationToken cancellationToken = default) {
             await Task.Delay(delay, cancellationToken);
-            throw new TimeoutException("Hello world!");
+            throw new InvalidOperationException("I have no idea how to handle that request!");
         }
     }
 }
