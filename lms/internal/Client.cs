@@ -85,18 +85,20 @@ namespace lms.Internal {
 
                 var s = socket;
                 using var ctx = socket.CreateAsyncContext(factory).Unwrap();
-                ctx.SetTimeout(60000);
+                await using var cancelReg = cancellationToken.Register(ctx.Cancel);
 
                 IMessage res;
                 try {
-                    logger.LogInformation("-> {Method}", name);
+                    logger?.LogInformation("-> {Method}", name);
                     using(req)
                         res = (await ctx.Send(req)).Unwrap();
-                    logger.LogInformation("-< {Method}", name);
+                    logger?.LogInformation("-< {Method}", name);
                 }catch(NngException exception){
                     if(exception.ErrorCode == Defines.NNG_ETIMEDOUT)
                         throw;
-                    logger.LogWarning(exception, "Failed to send {Method}", name);
+                    else if(exception.ErrorCode == Defines.NNG_ECANCELED)
+                        throw new OperationCanceledException();
+                    logger?.LogWarning(exception, "Failed to send {Method}", name);
                     continue;
                 }
                 using(res) {

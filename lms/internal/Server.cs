@@ -46,7 +46,7 @@ namespace lms.Internal {
         
         private async Task RecieveLoop(IRepSocket socket, CancellationToken cancellationToken = default) {
             using var ctx = socket.CreateAsyncContext(factory).Unwrap();
-            cancellationToken.Register(ctx.Cancel);
+            await using var cancelReg = cancellationToken.Register(ctx.Cancel);
             while(!cancellationToken.IsCancellationRequested)
             {
                 try
