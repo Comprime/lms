@@ -2,39 +2,38 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Microsoft.Extensions.Logging;
-using lms;
 
 namespace lms.test
 {
-    [Collection("Test")]
     public class LargeObjectTests
     {
         [Theory]
-        //[InlineData(@"tcp://localhost:1337")]
-        //[InlineData(@"inproc://foo-bar")]
+        [InlineData(@"tcp://localhost:1337")]
+        [InlineData(@"inproc://foo-bar")]
         [InlineData(@"ipc://foo-bar")]
         public async Task TestLargeObject(string uri)
         {
             var factory = Constants.NngFactory;
-            using var server = Lms.CreateServerBuilder(Constants.LogFactory.CreateLogger<IServer>())
-                .AddFunction("Foo", LargeObject)
+            using var server = Lms.CreateServerBuilder()
+                .AddFunction<int>("Foo", LargeObject)
                 .Build(factory, uri);
-            using var client = Lms.CreateClient(factory, uri, Constants.LogFactory.CreateLogger<IClient>());
+            using var client = Lms.CreateClient(factory, uri);
             using var cts = new CancellationTokenSource();
             Task listenTask = null;
             try {
                 listenTask = server.Listen(1, cts.Token);
-                var b = await client.Request("Foo", null);
-                Assert.Equal(1024, b.Length);
+                var r = new Random();
+                var s = 1024*1024*2 + r.Next(12, 345);
+                var b = await client.Request("Foo", s);
+                Assert.Equal(s, b.Length);
             }finally{
                 cts.Cancel();
                 await listenTask;
             }
         }
 
-        public async ValueTask<byte[]> LargeObject(byte[] _, CancellationToken cancellationToken){
-            return new byte[1024];
+        public ValueTask<byte[]> LargeObject(int size, CancellationToken cancellationToken){
+            return new ValueTask<byte[]>(new byte[size]);
         }
     }
 }

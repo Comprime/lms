@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using MessagePack;
 using MessagePack.Formatters;
 
@@ -6,12 +7,12 @@ namespace lms.Internal {
     internal sealed class Request : ILmsMessage {
         public int MsgId { get; set; }
         public string Method { get; set; }
-        public byte[] Params { get; set; }
+        public ReadOnlySequence<byte>? Params { get; set; }
     }
     internal sealed class Response : ILmsMessage {
         public int MsgId { get; set; }
-        public byte[] Result { get; set; }
-        public byte[] Error { get; set; }
+        public ReadOnlySequence<byte>? Result { get; set; }
+        public ReadOnlySequence<byte>? Error { get; set; }
     }
     internal interface ILmsMessage { }
     internal sealed class MessageFormatter : IMessagePackFormatter<ILmsMessage>, IMessagePackFormatter<Request>, IMessagePackFormatter<Response>
@@ -45,14 +46,26 @@ namespace lms.Internal {
             writer.Write(0);
             writer.Write(value.MsgId);
             writer.Write(value.Method);
-            writer.Write(value.Params);
+            if(value.Params is ReadOnlySequence<byte> sequence) {
+                writer.WriteBinHeader((int)sequence.Length);
+                writer.WriteRaw(sequence);
+            } else
+                writer.WriteNil();
         }
         public void Serialize(ref MessagePackWriter writer, Response value, MessagePackSerializerOptions options)
         {
             writer.Write(1);
             writer.Write(value.MsgId);
-            writer.Write(value.Result);
-            writer.Write(value.Error);
+            if(value.Result is ReadOnlySequence<byte> resSequence) {
+                writer.WriteBinHeader((int)resSequence.Length);
+                writer.WriteRaw(resSequence);
+            } else
+                writer.WriteNil();
+            if(value.Error is ReadOnlySequence<byte> errSequence) {
+                writer.WriteBinHeader((int)errSequence.Length);
+                writer.WriteRaw(errSequence);
+            } else
+                writer.WriteNil();
         }
 
         Request IMessagePackFormatter<Request>.Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
@@ -69,14 +82,14 @@ namespace lms.Internal {
         Response DeserializeResponse(ref MessagePackReader reader, MessagePackSerializerOptions options) =>
             new Response {
                 MsgId = reader.ReadInt32(),
-                Result = reader.ReadBytes().GetValueOrDefault().First.ToArray(),
-                Error = reader.ReadBytes().GetValueOrDefault().First.ToArray()
+                Result = reader.ReadBytes().ToArray().AsSequence(),
+                Error = reader.ReadBytes().ToArray().AsSequence()
             };
         Request DeserializeRequest(ref MessagePackReader reader, MessagePackSerializerOptions options) =>
             new Request {
                 MsgId = reader.ReadInt32(),
                 Method = reader.ReadString(),
-                Params = reader.ReadBytes().GetValueOrDefault().First.ToArray()
+                Params = reader.ReadBytes().ToArray().AsSequence()
             };
     }
 }

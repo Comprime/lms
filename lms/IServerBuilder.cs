@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using nng;
 
 namespace lms {
@@ -9,6 +10,6 @@ namespace lms {
         IServerBuilder AddFunction<TRes>(string name, Func<byte[], CancellationToken, ValueTask<TRes>> action);
         IServerBuilder AddFunction<TReq>(string name, Func<TReq, CancellationToken, ValueTask<byte[]>> action);
         IServerBuilder AddFunction(string name, Func<byte[], CancellationToken, ValueTask<byte[]>> action);
-        IServer Build(IAPIFactory<IMessage> factory, string uri);
+        IServer Build(IAPIFactory<IMessage> factory, string uri, Action<IOptions> socketConfigurator = null, ILogger<IServer> logger = null);
     }
 }

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <Version>0.1.4</Version>
+    <Version>0.1.5</Version>
     <PackageId>compri.me.lms</PackageId>
     <AssemblyName>compri.me.lms</AssemblyName>
     <Authors>Victor Dahmen</Authors>
@@ -13,12 +13,13 @@
     <RepositoryUrl>https://github.com/Comprime/lms</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <ExcludeRestorePackageImports>true</ExcludeRestorePackageImports>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="MessagePack" Version="2.1.165" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.7" />
-    <PackageReference Include="Subor.nng.NETCore" Version="1.1.1.1" />
+    <PackageReference Include="nng.NET" Version="1.3.0-rc0 " />
     <PackageReference Include="System.Collections.Immutable" Version="1.7.1" />
     <None Include="../LICENSE" Pack="true" PackagePath="$(PackageLicenseFile)"/>
   </ItemGroup>

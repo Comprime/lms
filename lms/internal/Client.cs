@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,7 @@ namespace lms.Internal {
     {
         private readonly IAPIFactory<IMessage> factory;
         private readonly string uri;
+        private readonly Action<IOptions> socketConfigurator;
         private readonly ILogger<IClient> logger;
         private readonly CancellationTokenSource disposeTokenSource;
         private static readonly MessagePackSerializerOptions msgOptions = MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance);
@@ -20,9 +22,10 @@ namespace lms.Internal {
         private IReqSocket socket;
         private int counter = 0;
         private SemaphoreSlim socketSemaphore = new SemaphoreSlim(1);
-        internal Client(IAPIFactory<IMessage> factory, string uri, ILogger<IClient> logger = null) {
+        internal Client(IAPIFactory<IMessage> factory, string uri, Action<IOptions> socketConfigurator = null, ILogger<IClient> logger = null) {
             this.factory = factory;
             this.uri = uri;
+            this.socketConfigurator = socketConfigurator;
             this.logger = logger;
             disposeTokenSource = new CancellationTokenSource();
         }
@@ -35,6 +38,7 @@ namespace lms.Internal {
                 while(socket is null && !cts.Token.IsCancellationRequested) {
                     try {
                         socket = factory.RequesterOpen().ThenDial(uri).Unwrap();
+                        socketConfigurator?.Invoke(socket);
                     }catch (NngException exception) {
                         if(exception.ErrorCode == nng.Native.Defines.NNG_ECONNREFUSED)
                             await Task.Delay(100, cts.Token);
@@ -79,11 +83,10 @@ namespace lms.Internal {
                     MessagePackSerializer.Serialize(stream, new Request {
                         MsgId = id,
                         Method = name,
-                        Params = request
+                        Params = request.AsSequence(),
                     }, intMsgOptions);
                 }
 
-                var s = socket;
                 using var ctx = socket.CreateAsyncContext(factory).Unwrap();
                 await using var cancelReg = cancellationToken.Register(ctx.Cancel);
 
@@ -104,10 +107,10 @@ namespace lms.Internal {
                 using(res) {
                     using var stream = new NngMessageStream(res);
                     var resD = MessagePackSerializer.Deserialize<Response>(stream, intMsgOptions);
-                    if(resD.MsgId != id) throw new Exception("ID Missmatch");
-                    if(resD.Error is object && resD.Error.Length > 0)
-                        throw MessagePackSerializer.Deserialize<Exception>(resD.Error, excMsgOptions);
-                    return resD.Result;
+                    if(resD.MsgId != id) throw new InvalidOperationException("ID Missmatch");
+                    if(resD.Error is ReadOnlySequence<byte> errSequence && errSequence.Length > 0)
+                        throw MessagePackSerializer.Deserialize<Exception>(errSequence, excMsgOptions);
+                    return resD.Result.ToArray();
                 }
             }
             cancellationToken.ThrowIfCancellationRequested();

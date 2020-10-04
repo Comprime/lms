@@ -30,16 +30,16 @@ namespace lms.proj
                 // Set up server interface
                 Task.Run(async()=>{
                     await using var server = 
-                        Lms.CreateServerBuilder(loggerFactory.CreateLogger<IServer>())
+                        Lms.CreateServerBuilder()
                             .AddFunction<int,int>("Tester", Tester)
                             .AddFunction<int,int>("ThrowException", ThrowException)
-                            .Build(factory, uri);
+                            .Build(factory, uri, null, loggerFactory.CreateLogger<IServer>());
                     await server.Listen(8, cts.Token);
                 }),
 
                 // Client Tester request loop
                 Task.Run(async()=>{
-                    await using var client = Lms.CreateClient(factory, uri, loggerFactory.CreateLogger<IClient>());
+                    await using var client = Lms.CreateClient(factory, uri, null, loggerFactory.CreateLogger<IClient>());
                     var random = new Random();
                     while(!cts.Token.IsCancellationRequested){
                         var request = random.Next();
@@ -50,7 +50,7 @@ namespace lms.proj
 
                 // Client Tester request loop
                 Task.Run(async()=>{
-                    await using var client = Lms.CreateClient(factory, uri, loggerFactory.CreateLogger<IClient>());
+                    await using var client = Lms.CreateClient(factory, uri, null, loggerFactory.CreateLogger<IClient>());
                     while(!cts.Token.IsCancellationRequested){
                         try {
                             var result = await client.Request<int, int>("ThrowException", 20, cts.Token);
